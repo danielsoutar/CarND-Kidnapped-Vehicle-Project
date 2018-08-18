@@ -95,7 +95,7 @@ inline bool read_map_data(std::string filename, Map& map) {
 		float landmark_x_f, landmark_y_f;
 		int id_i;
 
-		// Read data from current line to values::
+		// Read data from current line to values:
 		iss_map >> landmark_x_f;
 		iss_map >> landmark_y_f;
 		iss_map >> id_i;

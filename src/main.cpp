@@ -51,31 +51,26 @@ int main()
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
 
-    if (length && length > 2 && data[0] == '4' && data[1] == '2')
-    {
+    if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
       auto s = hasData(std::string(data));
       if (s != "") {
-      	
-      	
         auto j = json::parse(s);
         std::string event = j[0].get<std::string>();
         
         if (event == "telemetry") {
           // j[1] is the data JSON object
 
-
           if (!pf.initialized()) {
-
           	// Sense noisy position data from the simulator
-			double sense_x = std::stod(j[1]["sense_x"].get<std::string>());
-			double sense_y = std::stod(j[1]["sense_y"].get<std::string>());
-			double sense_theta = std::stod(j[1]["sense_theta"].get<std::string>());
+  			double sense_x = std::stod(j[1]["sense_x"].get<std::string>());
+  			double sense_y = std::stod(j[1]["sense_y"].get<std::string>());
+  			double sense_theta = std::stod(j[1]["sense_theta"].get<std::string>());
 
-			pf.init(sense_x, sense_y, sense_theta, sigma_pos);
-		  }
-		  else {
-			// Predict the vehicle's next state from previous (noiseless control) data.
+  			pf.init(sense_x, sense_y, sense_theta, sigma_pos);
+	      }
+	      else {
+	        // Predict the vehicle's next state from previous (noiseless control) data.
 		  	double previous_velocity = std::stod(j[1]["previous_velocity"].get<std::string>());
 			double previous_yawrate = std::stod(j[1]["previous_yawrate"].get<std::string>());
 
@@ -114,18 +109,31 @@ int main()
 		  pf.updateWeights(sensor_range, sigma_landmark, noisy_observations, map);
 		  pf.resample();
 
+      // Oddly, when I tried to factor out repeated information by removing the 'weight'
+      // field of each particle (since we already have the weights vector), the best 
+      // particle never seems to be quite as good, even when I make the appropriate changes
+      // in the updateWeights() function. Very strange.
+
 		  // Calculate and output the average weighted error of the particle filter over all time steps so far.
-		  vector<Particle> particles = pf.particles;
+      vector<double> particle_weights = pf.get_weights();
+      vector<Particle> particles = pf.particles;
+      assert(particles.size() == particle_weights.size());
 		  int num_particles = particles.size();
 		  double highest_weight = -1.0;
 		  Particle best_particle;
 		  double weight_sum = 0.0;
 		  for (int i = 0; i < num_particles; ++i) {
-			if (particles[i].weight > highest_weight) {
-				highest_weight = particles[i].weight;
-				best_particle = particles[i];
+        // if(particles[i].weight > highest_weight) {
+        //   highest_weight = particles[i].weight;
+        //   best_particle = particles[i];
+        // }
+        // weight_sum += particles[i].weight;
+
+  			if(particle_weights[i] > highest_weight) {
+  				highest_weight = particle_weights[i];
+  				best_particle = particles[i];
 			}
-			weight_sum += particles[i].weight;
+			weight_sum += particle_weights[i];
 		  }
 		  cout << "highest w " << highest_weight << endl;
 		  cout << "average w " << weight_sum/num_particles << endl;
@@ -189,72 +197,6 @@ int main()
   }
   h.run();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
